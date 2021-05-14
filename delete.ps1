@@ -27,8 +27,6 @@ $enableSMSSignIn = $false
 
 $aRef = $account.userPrincipalName
 
-$dryRun = $false
-
 if(-Not($dryRun -eq $True)) {
     try{
         Write-Verbose -Verbose "Generating Microsoft Graph API Access Token.."
