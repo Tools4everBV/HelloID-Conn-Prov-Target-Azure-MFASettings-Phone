@@ -26,7 +26,7 @@ $account = [PSCustomObject]@{
     alternateMobile                 = "+31" + $p.Contact.Personal.Phone.Mobile;
     onlySetAlternateMobileWhenEmpty = $false;
     office                          = "+31" + $p.Contact.Business.Phone.Fixed;
-    onlySetOfficeWhenEmpty          = $true;
+    onlySetOfficeWhenEmpty          = $false;
 
     enableSMSSignInMobile           = $false
 };
