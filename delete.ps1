@@ -29,20 +29,12 @@ try{
     $baseUri = "https://login.microsoftonline.com/"
     $authUri = $baseUri + "$AADTenantID/oauth2/token"
 
-<<<<<<< HEAD
     $body = @{
         grant_type      = "client_credentials"
         client_id       = "$AADAppId"
         client_secret   = "$AADAppSecret"
         resource        = "https://graph.microsoft.com"
     }
-=======
-if(-Not($dryRun -eq $True)) {
-    try{
-        Write-Verbose -Verbose "Generating Microsoft Graph API Access Token.."
-        $baseUri = "https://login.microsoftonline.com/"
-        $authUri = $baseUri + "$AADTenantID/oauth2/token"
->>>>>>> 027f4b16f6c80c0e411cd2c6a7416047751775f6
 
     $Response = Invoke-RestMethod -Method POST -Uri $authUri -Body $body -ContentType 'application/x-www-form-urlencoded'
     $accessToken = $Response.access_token;
