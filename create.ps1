@@ -18,14 +18,18 @@ $AADAppSecret = $config.AADAppSecret
 
 # Change mapping here
 $account = [PSCustomObject]@{
-    userPrincipalName = $p.Accounts.AzureAD.userPrincipalName
-    phoneNumber = $p.Contact.Personal.Phone.Mobile;
-    # One of three:  alternateMobile, office, mobile
-    phoneType= 'mobile';
-};
-$enableSMSSignIn = $false
+    userPrincipalName               = $p.Accounts.MicrosoftActiveDirectory.userPrincipalName
+    # Phone numbers use the format "+<country code> <number>x<extension>", with extension optional.
+    # For example, +1 5555551234 or +1 5555551234x123 are valid. Numbers are rejected when creating/updating if they do not match the required format.    
+    mobile                          = "+31" + $p.Contact.Business.Phone.Mobile;
+    onlySetMobileWhenEmpty          = $false;
+    alternateMobile                 = "+31" + $p.Contact.Personal.Phone.Mobile;
+    onlySetAlternateMobileWhenEmpty = $false;
+    office                          = "+31" + $p.Contact.Business.Phone.Fixed;
+    onlySetOfficeWhenEmpty          = $true;
 
-$aRef = $account.userPrincipalName
+    enableSMSSignInMobile           = $false
+};
 
 try{
     Write-Verbose -Verbose "Generating Microsoft Graph API Access Token.."
@@ -58,73 +62,169 @@ try{
     $getPhoneAuthenticationMethodResponseValue = $getPhoneAuthenticationMethodResponse.value
     Write-Verbose -Verbose ("Phone authentication method: " + ($getPhoneAuthenticationMethodResponseValue | Out-String) )
 
-    $authenticationMethodSet = $false;
-    if( !([string]::IsNullOrEmpty(($getPhoneAuthenticationMethodResponseValue | Out-String))) ){
-        if( $getPhoneAuthenticationMethodResponseValue.phoneType.contains($($account.phoneType)) ){
-            $authenticationMethodSet = $true;
-        }
-    }
-
-    switch ($($account.phoneType)){
-        # Microsoft docs: https://docs.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-get?view=graph-rest-beta&tabs=http
-        # b6332ec1-7057-4abe-9331-3d72feddfe41 - where phoneType is alternateMobile.
-        'alternateMobile' {$phoneTypeId = 'b6332ec1-7057-4abe-9331-3d72feddfe41'}
-        # e37fc753-ff3b-4958-9484-eaa9425c82bc - where phoneType is office.
-        'office' {$phoneTypeId = 'e37fc753-ff3b-4958-9484-eaa9425c82bc'}
-        # 3179e48a-750b-4051-897c-87b9720928f7 - where phoneType is mobile.
-        'mobile' {$phoneTypeId = '3179e48a-750b-4051-897c-87b9720928f7'}
-    }
-
     if(-Not($dryRun -eq $True)) {
-        if($authenticationMethodSet -eq $false){
-            Write-Verbose -Verbose "No Phone Authentication set for Method $($account.phoneType). Adding Phone Authentication Method $($account.phoneType) : $($account.phoneNumber) for $($account.userPrincipalName).."
-        
-            $baseUri = "https://graph.microsoft.com/"
-            $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods"
-        
-            $body = @{
-                "phoneNumber" = $($account.phoneNumber)
-                "phoneType" = $($account.phoneType)
-            }
-            $bodyJson = $body | ConvertTo-Json -Depth 10
-        
-            $addPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $addPhoneAuthenticationMethodUri -Method Post -Headers $authorization -Body $bodyJson -Verbose:$false
-        
-            Write-Verbose -Verbose "Successfully Added Phone Authentication Method $($account.phoneType) : $($account.phoneNumber) for $($account.userPrincipalName)"        
-        }else{
-            $currentPhoneNumber = ($getPhoneAuthenticationMethodResponseValue | Where-Object {$_.phoneType -eq $($account.phoneType)}).phoneNumber
-            Write-Verbose -Verbose "Updating current Phone Authentication Method $($account.phoneType) : $currentPhoneNumber for $($account.userPrincipalName).."
+        if( ![string]::IsNullOrEmpty($account.mobile) ){
+            # Microsoft docs: https://docs.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-get?view=graph-rest-beta&tabs=http
+            # 3179e48a-750b-4051-897c-87b9720928f7 - where phoneType is mobile.
+            $phoneType = "mobile"
+            $phoneTypeId = '3179e48a-750b-4051-897c-87b9720928f7'
 
-            $previousAccount = [PSCustomObject]@{
-                userPrincipalName = $account.userPrincipalName
-                phoneNumber = $currentPhoneNumber;
-                # One of three:  alternateMobile, office, mobile
-                phoneType= $account.phoneType;
+            $authenticationMethodSet = $false
+            if( !([string]::IsNullOrEmpty(($getPhoneAuthenticationMethodResponseValue | Out-String))) ){
+                if( $getPhoneAuthenticationMethodResponseValue.phoneType.contains($($phoneType)) ){
+                    $authenticationMethodSet = $true;
+                }
             }
 
-            $baseUri = "https://graph.microsoft.com/"
-            $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods/$phoneTypeId"
-        
-            $body = @{
-                "phoneNumber" = $($account.phoneNumber)
-                "phoneType" = $($account.phoneType)
+            if($authenticationMethodSet -eq $false){
+                Write-Verbose -Verbose "No Phone Authentication set for Method $($phoneType). Adding Phone Authentication Method $($phoneType) : $($account.phoneNumber) for $($account.userPrincipalName).."
+            
+                $baseUri = "https://graph.microsoft.com/"
+                $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods"
+            
+                $body = @{
+                    "phoneNumber" = $($account.mobile)
+                    "phoneType" = $($phoneType)
+                }
+                $bodyJson = $body | ConvertTo-Json -Depth 10
+            
+                $addPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $addPhoneAuthenticationMethodUri -Method Post -Headers $authorization -Body $bodyJson -Verbose:$false
+            
+                Write-Verbose -Verbose "Successfully Added Phone Authentication Method $($phoneType) : $($account.phoneNumber) for $($account.userPrincipalName)"        
+            }else{
+                $currentPhoneNumber = ($getPhoneAuthenticationMethodResponseValue | Where-Object {$_.phoneType -eq $($phoneType)}).phoneNumber           
+                if($account.onlySetMobileWhenEmpty -eq $true){
+                     Write-Verbose -Verbose "Phone Authentication Method $($phoneType) set to only update when empty. Since this already contains data ($currentPhoneNumber), skipped update for $($account.userPrincipalName)"
+                }else{
+                    Write-Verbose -Verbose "Updating current Phone Authentication Method $($phoneType) : $currentPhoneNumber for $($account.userPrincipalName).."
+
+                    $baseUri = "https://graph.microsoft.com/"
+                    $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods/$phoneTypeId"
+                
+                    $body = @{
+                        "phoneNumber" = $($account.mobile)
+                        "phoneType" = $($phoneType)
+                    }
+                    $bodyJson = $body | ConvertTo-Json -Depth 10
+                
+                    $addPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $addPhoneAuthenticationMethodUri -Method Put -Headers $authorization -Body $bodyJson -Verbose:$false
+                
+                    Write-Verbose -Verbose "Successfully updated Phone Authentication Method $($phoneType) : $($account.phoneNumber) for $($account.userPrincipalName)"
+                }
             }
-            $bodyJson = $body | ConvertTo-Json -Depth 10
-        
-            $addPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $addPhoneAuthenticationMethodUri -Method Put -Headers $authorization -Body $bodyJson -Verbose:$false
-        
-            Write-Verbose -Verbose "Successfully updated Phone Authentication Method $($account.phoneType) : $($account.phoneNumber) for $($account.userPrincipalName)"
+
+            if($account.enableSMSSignInMobile -eq $true){
+                Write-Verbose -Verbose "Enabling $($phoneType) SMS Sign-in for $($account.userPrincipalName).."
+
+                $baseUri = "https://graph.microsoft.com/"
+                $enablePhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods/$phoneTypeId/enableSmsSignIn"
+
+                $enablePhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $enablePhoneAuthenticationMethodUri -Method Post -Headers $authorization -Verbose:$false
+
+                Write-Verbose -Verbose "Successfully enabled $($phoneType) SMS Sign-in for $($account.userPrincipalName)"
+            }        
         }
 
-        if($enableSMSSignIn -eq $true){
-            Write-Verbose -Verbose "Enabling Phone Authentication Method for $($account.userPrincipalName).."
+        if( ![string]::IsNullOrEmpty($account.alternateMobile) ){
+            # Microsoft docs: https://docs.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-get?view=graph-rest-beta&tabs=http
+            # b6332ec1-7057-4abe-9331-3d72feddfe41 - where phoneType is alternateMobile.
+            $phoneType = "alternateMobile"
+            $phoneTypeId = 'b6332ec1-7057-4abe-9331-3d72feddfe41'
 
-            $baseUri = "https://graph.microsoft.com/"
-            $enablePhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods/$phoneTypeId/enableSmsSignIn"
+            $authenticationMethodSet = $false
+            if( !([string]::IsNullOrEmpty(($getPhoneAuthenticationMethodResponseValue | Out-String))) ){
+                if( $getPhoneAuthenticationMethodResponseValue.phoneType.contains($($phoneType)) ){
+                    $authenticationMethodSet = $true;
+                }
+            }
 
-            $enablePhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $enablePhoneAuthenticationMethodUri -Method Post -Headers $authorization -Verbose:$false
+            if($authenticationMethodSet -eq $false){
+                Write-Verbose -Verbose "No Phone Authentication set for Method $($phoneType). Adding Phone Authentication Method $($phoneType) : $($account.phoneNumber) for $($account.userPrincipalName).."
+            
+                $baseUri = "https://graph.microsoft.com/"
+                $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods"
+            
+                $body = @{
+                    "phoneNumber" = $($account.alternateMobile)
+                    "phoneType" = $($phoneType)
+                }
+                $bodyJson = $body | ConvertTo-Json -Depth 10
+            
+                $addPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $addPhoneAuthenticationMethodUri -Method Post -Headers $authorization -Body $bodyJson -Verbose:$false
+            
+                Write-Verbose -Verbose "Successfully Added Phone Authentication Method $($phoneType) : $($account.phoneNumber) for $($account.userPrincipalName)"        
+            }else{
+                $currentPhoneNumber = ($getPhoneAuthenticationMethodResponseValue | Where-Object {$_.phoneType -eq $($phoneType)}).phoneNumber        
+                if($account.onlySetAlternateMobileWhenEmpty -eq $true){
+                    Write-Verbose -Verbose "Phone Authentication Method $($phoneType) set to only update when empty. Since this already contains data ($currentPhoneNumber), skipped update for $($account.userPrincipalName)"
+               }else{
+                   Write-Verbose -Verbose "Updating current Phone Authentication Method $($phoneType) : $currentPhoneNumber for $($account.userPrincipalName).."
 
-            Write-Verbose -Verbose "Successfully enabled Phone Authentication Method for $($account.userPrincipalName)"
+                   $baseUri = "https://graph.microsoft.com/"
+                   $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods/$phoneTypeId"
+               
+                   $body = @{
+                       "phoneNumber" = $($account.mobile)
+                       "phoneType" = $($phoneType)
+                   }
+                   $bodyJson = $body | ConvertTo-Json -Depth 10
+               
+                   $addPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $addPhoneAuthenticationMethodUri -Method Put -Headers $authorization -Body $bodyJson -Verbose:$false
+               
+                   Write-Verbose -Verbose "Successfully updated Phone Authentication Method $($phoneType) : $($account.phoneNumber) for $($account.userPrincipalName)"
+               }
+            } 
+        }    
+
+        if( ![string]::IsNullOrEmpty($account.office) ){
+            # Microsoft docs: https://docs.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-get?view=graph-rest-beta&tabs=http
+            # e37fc753-ff3b-4958-9484-eaa9425c82bc - where phoneType is office.
+            $phoneType = "office"
+            $phoneTypeId = 'e37fc753-ff3b-4958-9484-eaa9425c82bc'
+
+            $authenticationMethodSet = $false
+            if( !([string]::IsNullOrEmpty(($getPhoneAuthenticationMethodResponseValue | Out-String))) ){
+                if( $getPhoneAuthenticationMethodResponseValue.phoneType.contains($($phoneType)) ){
+                    $authenticationMethodSet = $true;
+                }
+            }
+
+            if($authenticationMethodSet -eq $false){
+                Write-Verbose -Verbose "No Phone Authentication set for Method $($phoneType). Adding Phone Authentication Method $($phoneType) : $($account.phoneNumber) for $($account.userPrincipalName).."
+            
+                $baseUri = "https://graph.microsoft.com/"
+                $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods"
+            
+                $body = @{
+                    "phoneNumber" = $($account.office)
+                    "phoneType" = $($phoneType)
+                }
+                $bodyJson = $body | ConvertTo-Json -Depth 10
+            
+                $addPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $addPhoneAuthenticationMethodUri -Method Post -Headers $authorization -Body $bodyJson -Verbose:$false
+            
+                Write-Verbose -Verbose "Successfully Added Phone Authentication Method $($phoneType) : $($account.phoneNumber) for $($account.userPrincipalName)"        
+            }else{
+                $currentPhoneNumber = ($getPhoneAuthenticationMethodResponseValue | Where-Object {$_.phoneType -eq $($phoneType)}).phoneNumber        
+                if($account.onlySetOfficeWhenEmpty -eq $true){
+                    Write-Verbose -Verbose "Phone Authentication Method $($phoneType) set to only update when empty. Since this already contains data ($currentPhoneNumber), skipped update for $($account.userPrincipalName)"
+               }else{
+                   Write-Verbose -Verbose "Updating current Phone Authentication Method $($phoneType) : $currentPhoneNumber for $($account.userPrincipalName).."
+
+                   $baseUri = "https://graph.microsoft.com/"
+                   $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods/$phoneTypeId"
+               
+                   $body = @{
+                       "phoneNumber" = $($account.mobile)
+                       "phoneType" = $($phoneType)
+                   }
+                   $bodyJson = $body | ConvertTo-Json -Depth 10
+               
+                   $addPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $addPhoneAuthenticationMethodUri -Method Put -Headers $authorization -Body $bodyJson -Verbose:$false
+               
+                   Write-Verbose -Verbose "Successfully updated Phone Authentication Method $($phoneType) : $($account.phoneNumber) for $($account.userPrincipalName)"
+               }
+            } 
         }
     }
 
@@ -154,9 +254,11 @@ $result = [PSCustomObject]@{
 
     # Optionally return data for use in other systems
     ExportData = [PSCustomObject]@{
-        userPrincipalName = $account.userPrincipalName;
-        phoneNumber = $account.phoneNumber;
-        phoneType = $account.phoneType;
+        userPrincipalName       = $account.userPrincipalName;
+        mobile                  = $account.mobile
+        alternateMobile         = $account.alternateMobile
+        office                  = $account.office
+        enableSMSSignInMobile   = $account.enableSMSSignInMobile
     };
 };
 

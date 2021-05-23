@@ -18,14 +18,11 @@ $AADAppSecret = $config.AADAppSecret
 
 # Change mapping here
 $account = [PSCustomObject]@{
-    userPrincipalName = $p.Accounts.AzureAD.userPrincipalName
-    phoneNumber = $p.Contact.Personal.Phone.Mobile;
-    # One of three:  alternateMobile, office, mobile
-    phoneType= 'mobile';
+    userPrincipalName               = $p.Accounts.MicrosoftActiveDirectory.userPrincipalName
+    removeAlternateMobile           = $true;
+    removeOffice                    = $true;
+    removeMobile                    = $true;
 };
-$enableSMSSignIn = $false
-
-$aRef = $account.userPrincipalName
 
 try{
     Write-Verbose -Verbose "Generating Microsoft Graph API Access Token.."
@@ -58,43 +55,89 @@ try{
     $getPhoneAuthenticationMethodResponseValue = $getPhoneAuthenticationMethodResponse.value
     Write-Verbose -Verbose ("Phone authentication method: " + ($getPhoneAuthenticationMethodResponseValue | Out-String) )
 
-    $authenticationMethodSet = $false;
-    if( !([string]::IsNullOrEmpty(($getPhoneAuthenticationMethodResponseValue | Out-String))) ){
-        if( $getPhoneAuthenticationMethodResponseValue.phoneType.contains($($account.phoneType)) ){
-            $authenticationMethodSet = $true;
-        }
-    }
-
-    switch ($($account.phoneType)){
-        # Microsoft docs: https://docs.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-get?view=graph-rest-beta&tabs=http
-        # b6332ec1-7057-4abe-9331-3d72feddfe41 - where phoneType is alternateMobile.
-        'alternateMobile' {$phoneTypeId = 'b6332ec1-7057-4abe-9331-3d72feddfe41'}
-        # e37fc753-ff3b-4958-9484-eaa9425c82bc - where phoneType is office.
-        'office' {$phoneTypeId = 'e37fc753-ff3b-4958-9484-eaa9425c82bc'}
-        # 3179e48a-750b-4051-897c-87b9720928f7 - where phoneType is mobile.
-        'mobile' {$phoneTypeId = '3179e48a-750b-4051-897c-87b9720928f7'}
-    }
-
     if(-Not($dryRun -eq $True)) {
-        if($authenticationMethodSet -eq $false){
-            Write-Verbose -Verbose "No Phone Authentication set. Nothing to delete"
-        }else{
-            $currentPhoneNumber = ($getPhoneAuthenticationMethodResponseValue | Where-Object {$_.phoneType -eq $($account.phoneType)}).phoneNumber
-            Write-Verbose -Verbose "Deleting current Phone Authentication Method $($account.phoneType) : $currentPhoneNumber for $($account.userPrincipalName).."
+        if( $account.removeAlternateMobile -eq $true ){
+            # Microsoft docs: https://docs.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-get?view=graph-rest-beta&tabs=http
+            # b6332ec1-7057-4abe-9331-3d72feddfe41 - where phoneType is alternateMobile.
+            $phoneType = "alternateMobile"
+            $phoneTypeId = 'b6332ec1-7057-4abe-9331-3d72feddfe41'
 
-            $previousAccount = [PSCustomObject]@{
-                userPrincipalName = $account.userPrincipalName
-                phoneNumber = $currentPhoneNumber;
-                # One of three:  alternateMobile, office, mobile
-                phoneType= $account.phoneType;
+            $authenticationMethodSet = $false
+            if( !([string]::IsNullOrEmpty(($getPhoneAuthenticationMethodResponseValue | Out-String))) ){
+                if( $getPhoneAuthenticationMethodResponseValue.phoneType.contains($($phoneType)) ){
+                    $authenticationMethodSet = $true;
+                }
             }
 
-            $baseUri = "https://graph.microsoft.com/"
-            $deletePhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods/$phoneTypeId"
+            if($authenticationMethodSet -eq $false){
+                Write-Verbose -Verbose "No Phone Authentication set. Nothing to delete"
+            }else{
+                $currentPhoneNumber = ($getPhoneAuthenticationMethodResponseValue | Where-Object {$_.phoneType -eq $($account.phoneType)}).phoneNumber
+                Write-Verbose -Verbose "Deleting current Phone Authentication Method $($account.phoneType) : $currentPhoneNumber for $($account.userPrincipalName).."
+
+                $baseUri = "https://graph.microsoft.com/"
+                $deletePhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods/$phoneTypeId"
+            
+                $deletePhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $deletePhoneAuthenticationMethodUri -Method Delete -Headers $authorization -Body $bodyJson -Verbose:$false
+            
+                Write-Verbose -Verbose "Successfully deleted Phone Authentication Method $($account.phoneType) : $currentPhoneNumber for $($account.userPrincipalName)"
+            }
+        }
         
-            $deletePhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $deletePhoneAuthenticationMethodUri -Method Delete -Headers $authorization -Body $bodyJson -Verbose:$false
-        
-            Write-Verbose -Verbose "Successfully deleted Phone Authentication Method $($account.phoneType) : $currentPhoneNumber for $($account.userPrincipalName)"
+        if( $account.removeOffice -eq $true ){
+            # Microsoft docs: https://docs.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-get?view=graph-rest-beta&tabs=http
+            # e37fc753-ff3b-4958-9484-eaa9425c82bc - where phoneType is office.
+            $phoneType = "office"
+            $phoneTypeId = 'e37fc753-ff3b-4958-9484-eaa9425c82bc'
+
+            $authenticationMethodSet = $false
+            if( !([string]::IsNullOrEmpty(($getPhoneAuthenticationMethodResponseValue | Out-String))) ){
+                if( $getPhoneAuthenticationMethodResponseValue.phoneType.contains($($phoneType)) ){
+                    $authenticationMethodSet = $true;
+                }
+            }
+
+            if($authenticationMethodSet -eq $false){
+                Write-Verbose -Verbose "No Phone Authentication set. Nothing to delete"
+            }else{
+                $currentPhoneNumber = ($getPhoneAuthenticationMethodResponseValue | Where-Object {$_.phoneType -eq $($account.phoneType)}).phoneNumber
+                Write-Verbose -Verbose "Deleting current Phone Authentication Method $($account.phoneType) : $currentPhoneNumber for $($account.userPrincipalName).."
+
+                $baseUri = "https://graph.microsoft.com/"
+                $deletePhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods/$phoneTypeId"
+            
+                $deletePhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $deletePhoneAuthenticationMethodUri -Method Delete -Headers $authorization -Body $bodyJson -Verbose:$false
+            
+                Write-Verbose -Verbose "Successfully deleted Phone Authentication Method $($account.phoneType) : $currentPhoneNumber for $($account.userPrincipalName)"
+            }
+        }
+
+        if( $account.removeMobile -eq $true ){
+            # Microsoft docs: https://docs.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-get?view=graph-rest-beta&tabs=http
+            # 3179e48a-750b-4051-897c-87b9720928f7 - where phoneType is mobile.
+            $phoneType = "mobile"
+            $phoneTypeId = '3179e48a-750b-4051-897c-87b9720928f7'
+
+            $authenticationMethodSet = $false
+            if( !([string]::IsNullOrEmpty(($getPhoneAuthenticationMethodResponseValue | Out-String))) ){
+                if( $getPhoneAuthenticationMethodResponseValue.phoneType.contains($($phoneType)) ){
+                    $authenticationMethodSet = $true;
+                }
+            }
+
+            if($authenticationMethodSet -eq $false){
+                Write-Verbose -Verbose "No Phone Authentication set. Nothing to delete"
+            }else{
+                $currentPhoneNumber = ($getPhoneAuthenticationMethodResponseValue | Where-Object {$_.phoneType -eq $($account.phoneType)}).phoneNumber
+                Write-Verbose -Verbose "Deleting current Phone Authentication Method $($account.phoneType) : $currentPhoneNumber for $($account.userPrincipalName).."
+
+                $baseUri = "https://graph.microsoft.com/"
+                $deletePhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods/$phoneTypeId"
+            
+                $deletePhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $deletePhoneAuthenticationMethodUri -Method Delete -Headers $authorization -Body $bodyJson -Verbose:$false
+            
+                Write-Verbose -Verbose "Successfully deleted Phone Authentication Method $($account.phoneType) : $currentPhoneNumber for $($account.userPrincipalName)"
+            }
         }
     }
 
@@ -124,9 +167,10 @@ $result = [PSCustomObject]@{
 
     # Optionally return data for use in other systems
     ExportData = [PSCustomObject]@{
-        userPrincipalName = $account.userPrincipalName;
-        phoneNumber = $account.phoneNumber;
-        phoneType = $account.phoneType;
+        userPrincipalName       = $account.userPrincipalName;
+        removeMobile            = $account.removeMobile
+        removeAlternateMobile   = $account.removeAlternateMobile
+        removeOffice            = $account.removeOffice
     };
 };
 
