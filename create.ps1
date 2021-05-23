@@ -27,54 +27,55 @@ $enableSMSSignIn = $false
 
 $aRef = $account.userPrincipalName
 
-if(-Not($dryRun -eq $True)) {
-    try{
-        Write-Verbose -Verbose "Generating Microsoft Graph API Access Token.."
-        $baseUri = "https://login.microsoftonline.com/"
-        $authUri = $baseUri + "$AADTenantID/oauth2/token"
+try{
+    Write-Verbose -Verbose "Generating Microsoft Graph API Access Token.."
+    $baseUri = "https://login.microsoftonline.com/"
+    $authUri = $baseUri + "$AADTenantID/oauth2/token"
 
-        $body = @{
-            grant_type      = "client_credentials"
-            client_id       = "$AADAppId"
-            client_secret   = "$AADAppSecret"
-            resource        = "https://graph.microsoft.com"
+    $body = @{
+        grant_type      = "client_credentials"
+        client_id       = "$AADAppId"
+        client_secret   = "$AADAppSecret"
+        resource        = "https://graph.microsoft.com"
+    }
+
+    $Response = Invoke-RestMethod -Method POST -Uri $authUri -Body $body -ContentType 'application/x-www-form-urlencoded'
+    $accessToken = $Response.access_token;
+
+    #Add the authorization header to the request
+    $authorization = @{
+        Authorization = "Bearer $accesstoken";
+        'Content-Type' = "application/json";
+        Accept = "application/json";
+    }
+
+    Write-Verbose -Verbose "Gathering current Phone Authentication Methods for $($account.userPrincipalName).."
+
+    $baseUri = "https://graph.microsoft.com/"
+    $getPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods"
+
+    $getPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $getPhoneAuthenticationMethodUri -Method Get -Headers $authorization -Verbose:$false
+    $getPhoneAuthenticationMethodResponseValue = $getPhoneAuthenticationMethodResponse.value
+    Write-Verbose -Verbose ("Phone authentication method: " + ($getPhoneAuthenticationMethodResponseValue | Out-String) )
+
+    $authenticationMethodSet = $false;
+    if( !([string]::IsNullOrEmpty(($getPhoneAuthenticationMethodResponseValue | Out-String))) ){
+        if( $getPhoneAuthenticationMethodResponseValue.phoneType.contains($($account.phoneType)) ){
+            $authenticationMethodSet = $true;
         }
+    }
 
-        $Response = Invoke-RestMethod -Method POST -Uri $authUri -Body $body -ContentType 'application/x-www-form-urlencoded'
-        $accessToken = $Response.access_token;
+    switch ($($account.phoneType)){
+        # Microsoft docs: https://docs.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-get?view=graph-rest-beta&tabs=http
+        # b6332ec1-7057-4abe-9331-3d72feddfe41 - where phoneType is alternateMobile.
+        'alternateMobile' {$phoneTypeId = 'b6332ec1-7057-4abe-9331-3d72feddfe41'}
+        # e37fc753-ff3b-4958-9484-eaa9425c82bc - where phoneType is office.
+        'office' {$phoneTypeId = 'e37fc753-ff3b-4958-9484-eaa9425c82bc'}
+        # 3179e48a-750b-4051-897c-87b9720928f7 - where phoneType is mobile.
+        'mobile' {$phoneTypeId = '3179e48a-750b-4051-897c-87b9720928f7'}
+    }
 
-        #Add the authorization header to the request
-        $authorization = @{
-            Authorization = "Bearer $accesstoken";
-            'Content-Type' = "application/json";
-            Accept = "application/json";
-        }
-
-        Write-Verbose -Verbose "Gathering current Phone Authentication Methods for $($account.userPrincipalName).."
-
-        $baseUri = "https://graph.microsoft.com/"
-        $getPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($account.userPrincipalName)/authentication/phoneMethods"
-
-        $getPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $getPhoneAuthenticationMethodUri -Method Get -Headers $authorization -Verbose:$false
-
-        $getPhoneAuthenticationMethodResponseValue = $getPhoneAuthenticationMethodResponse.value
-        $authenticationMethodSet = $false;
-        if( !([string]::IsNullOrEmpty(($getPhoneAuthenticationMethodResponseValue | Out-String))) ){
-            if( $getPhoneAuthenticationMethodResponseValue.phoneType.contains($($account.phoneType)) ){
-                $authenticationMethodSet = $true;
-            }
-        }
-
-        switch ($($account.phoneType)){
-            # Microsoft docs: https://docs.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-get?view=graph-rest-beta&tabs=http
-            # b6332ec1-7057-4abe-9331-3d72feddfe41 - where phoneType is alternateMobile.
-            'alternateMobile' {$phoneTypeId = 'b6332ec1-7057-4abe-9331-3d72feddfe41'}
-            # e37fc753-ff3b-4958-9484-eaa9425c82bc - where phoneType is office.
-            'office' {$phoneTypeId = 'e37fc753-ff3b-4958-9484-eaa9425c82bc'}
-            # 3179e48a-750b-4051-897c-87b9720928f7 - where phoneType is mobile.
-            'mobile' {$phoneTypeId = '3179e48a-750b-4051-897c-87b9720928f7'}
-        }
-
+    if(-Not($dryRun -eq $True)) {
         if($authenticationMethodSet -eq $false){
             Write-Verbose -Verbose "No Phone Authentication set for Method $($account.phoneType). Adding Phone Authentication Method $($account.phoneType) : $($account.phoneNumber) for $($account.userPrincipalName).."
         
@@ -125,22 +126,22 @@ if(-Not($dryRun -eq $True)) {
 
             Write-Verbose -Verbose "Successfully enabled Phone Authentication Method for $($account.userPrincipalName)"
         }
-
-        $auditLogs.Add([PSCustomObject]@{
-            Action = "CreateAccount"
-            Message = "Correlated to and updated Azure MFA settings of account with UPN $($aRef)"
-            IsError = $false;
-        });
-
-        $success = $true;    
-    }catch{
-        $auditLogs.Add([PSCustomObject]@{
-            Action = "CreateAccount"
-            Message = "Error correlating to and updating Azure MFA settings of account with UPN $($aRef): $($_)"
-            IsError = $True
-        });
-        Write-Error $_;
     }
+
+    $auditLogs.Add([PSCustomObject]@{
+        Action = "CreateAccount"
+        Message = "Correlated to and updated Azure MFA settings of account with UPN $($aRef)"
+        IsError = $false;
+    });
+
+    $success = $true;    
+}catch{
+    $auditLogs.Add([PSCustomObject]@{
+        Action = "CreateAccount"
+        Message = "Error correlating to and updating Azure MFA settings of account with UPN $($aRef): $($_)"
+        IsError = $True
+    });
+    Write-Error $_;
 }
 
 # Send results
