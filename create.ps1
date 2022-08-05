@@ -102,7 +102,7 @@ catch {
     $auditErrorMessage = ($ex | ConvertFrom-Json).error.message
     $success = $false  
     $auditLogs.Add([PSCustomObject]@{
-            Action  = "DeleteAccount"
+            Action  = "CreateAccount"
             Message = "Error correlating to and updating Azure MFA settings of account with id $($aRef). Error Message: $auditErrorMessage"
             IsError = $True
         })
@@ -111,19 +111,19 @@ catch {
         if (-Not($dryRun -eq $True)) {
             $success = $false
             $auditLogs.Add([PSCustomObject]@{
-                    Action  = "UpdateAccount"
-                    Message = "No Azure AD user found with UPN $($account.userPrincipalName). Possibly deleted, skipping action."
+                    Action  = "CreateAccount"
+                    Message = "No Azure AD user found with UPN $($account.userPrincipalName). Possibly deleted."
                     IsError = $true
                 })
         }
         else {
-            Write-Warning "DryRun: No Azure AD user found with UPN $($account.userPrincipalName). Possibly deleted, skipping action."
-        }     
+            Write-Warning "DryRun: No Azure AD user found with UPN $($account.userPrincipalName). Possibly deleted."
+        }
     }
     else {
         $success = $false  
         $auditLogs.Add([PSCustomObject]@{
-                Action  = "DeleteAccount"
+                Action  = "CreateAccount"
                 Message = "Error correlating to and updating Azure MFA settings of account with id $($aRef). Error Message: $auditErrorMessage"
                 IsError = $True
             })
@@ -201,7 +201,7 @@ if ($null -ne $azureUser.id) {
                             })
                     }
                     else {
-                        Write-Warning "DryRun: Updating current Phone Authentication Method $($phoneType) : $currentPhoneNumber for account with id $($aRef)"
+                        Write-Warning "DryRun: Updating current Phone Authentication Method $($phoneType) value '$currentPhoneNumber' to value '$($phoneNumber)' for account with id $($aRef)"
                     }
                 }
             }
@@ -307,7 +307,7 @@ if ($null -ne $azureUser.id) {
                     Write-Warning "Phone Authentication Method $($phoneType) set to only update when empty. Since this already contains data ($currentPhoneNumber), skipped update for account with id $($aRef)"
                 }
                 else {
-                    Write-Verbose "Updating current Phone Authentication Method $($phoneType) : $currentPhoneNumber for account with id $($aRef)"
+                    Write-Verbose "Updating current Phone Authentication Method $($phoneType) value '$currentPhoneNumber' to value '$($phoneNumber)' for account with id $($aRef)"
 
                     $baseUri = "https://graph.microsoft.com/"
                     $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($aRef)/authentication/phoneMethods/$phoneTypeId"
@@ -329,7 +329,7 @@ if ($null -ne $azureUser.id) {
                             })
                     }
                     else {
-                        Write-Warning "DryRun: Updating current Phone Authentication Method $($phoneType) : $currentPhoneNumber for account with id $($aRef)"
+                        Write-Warning "DryRun: Updating current Phone Authentication Method $($phoneType) value '$currentPhoneNumber' to value '$($phoneNumber)' for account with id $($aRef)"
                     }    
                 }
             } 
@@ -397,7 +397,7 @@ if ($null -ne $azureUser.id) {
                     Write-Warning "Phone Authentication Method $($phoneType) set to only update when empty. Since this already contains data ($currentPhoneNumber), skipped update for account with id $($aRef)"
                 }
                 else {
-                    Write-Verbose "Updating current Phone Authentication Method $($phoneType) : $currentPhoneNumber for account with id $($aRef)"
+                    Write-Verbose "Updating current Phone Authentication Method $($phoneType) value '$currentPhoneNumber' to value '$($phoneNumber)' for account with id $($aRef)"
 
                     $baseUri = "https://graph.microsoft.com/"
                     $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($aRef)/authentication/phoneMethods/$phoneTypeId"
@@ -419,7 +419,7 @@ if ($null -ne $azureUser.id) {
                             })
                     }
                     else {
-                        Write-Warning "DryRun: Updating current Phone Authentication Method $($phoneType) : $currentPhoneNumber for account with id $($aRef)"
+                        Write-Warning "DryRun: Updating current Phone Authentication Method $($phoneType) value '$currentPhoneNumber' to value '$($phoneNumber)' for account with id $($aRef)"
                     }    
                 }
             } 
