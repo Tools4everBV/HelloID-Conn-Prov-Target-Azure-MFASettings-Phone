@@ -22,7 +22,6 @@ $AADAppSecret = $config.AADAppSecret
 
 # Change mapping here
 $account = [PSCustomObject]@{
-    userPrincipalName               = $p.Accounts.MicrosoftAzureAD.userPrincipalName
     # Phone numbers use the format "+<country code> <number>x<extension>", with extension optional.
     # For example, +1 5555551234 or +1 5555551234x123 are valid. Numbers are rejected when creating/updating if they do not match the required format.    
     mobile                          = "+31 " + $p.Contact.Business.Phone.Mobile
