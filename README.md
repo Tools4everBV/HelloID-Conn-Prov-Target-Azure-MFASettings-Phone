@@ -68,7 +68,8 @@ Select the application we created before, and select “<b>API Permissions</b>�
 To assign a new permission to your application, click the “<b>Add a permission</b>” button.
 From the “<b>Request API Permissions</b>” screen click “<b>Microsoft Graph</b>”.
 For this connector the following permissions are used as <b>Application permissions</b>:
-*	Read and Write aall user’s authentication methods by using <b><i>UserAuthenticationMethod.ReadWrite.All</i></b>
+*	Read and Write all user’s full profiles by using <b><i>User.ReadWrite.All</i></b>
+*	Read and Write all user’s authentication methods by using <b><i>UserAuthenticationMethod.ReadWrite.All</i></b>
 
 These permissions are based on the Microsoft docs articles:
 *	https://docs.microsoft.com/nl-nl/graph/api/authentication-list-phonemethods?view=graph-rest-beta&tabs=http
