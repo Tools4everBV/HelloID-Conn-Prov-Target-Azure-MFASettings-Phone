@@ -66,7 +66,7 @@ try {
         Write-Verbose "Gathering current Phone Authentication Methods for account with id $($aRef)"
 
         $baseUri = "https://graph.microsoft.com/"
-        $getPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($aRef)/authentication/phoneMethods"
+        $getPhoneAuthenticationMethodUri = $baseUri + "v1.0/users/$($aRef)/authentication/phoneMethods"
 
         $getPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $getPhoneAuthenticationMethodUri -Method Get -Headers $authorization -Verbose:$false
         $getPhoneAuthenticationMethodResponseValue = $getPhoneAuthenticationMethodResponse.value
@@ -125,7 +125,7 @@ if ($null -ne $azureUser.id) {
                 Write-Verbose "Deleting current Phone Authentication Method $($phoneType) with value '$($currentPhoneNumber)' for account with id $($aRef)"
 
                 $baseUri = "https://graph.microsoft.com/"
-                $deletePhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($aRef)/authentication/phoneMethods/$phoneTypeId"
+                $deletePhoneAuthenticationMethodUri = $baseUri + "v1.0/users/$($aRef)/authentication/phoneMethods/$phoneTypeId"
 
                 if (-Not($dryRun -eq $True)) {
                     $deletePhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $deletePhoneAuthenticationMethodUri -Method Delete -Headers $authorization -Body $bodyJson -Verbose:$false
@@ -179,7 +179,7 @@ if ($null -ne $azureUser.id) {
                 Write-Verbose "Deleting current Phone Authentication Method $($phoneType) with value '$($currentPhoneNumber)' for account with id $($aRef)"
 
                 $baseUri = "https://graph.microsoft.com/"
-                $deletePhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($aRef)/authentication/phoneMethods/$phoneTypeId"
+                $deletePhoneAuthenticationMethodUri = $baseUri + "v1.0/users/$($aRef)/authentication/phoneMethods/$phoneTypeId"
 
                 if (-Not($dryRun -eq $True)) {
                     $deletePhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $deletePhoneAuthenticationMethodUri -Method Delete -Headers $authorization -Body $bodyJson -Verbose:$false
@@ -235,7 +235,7 @@ if ($null -ne $azureUser.id) {
                 Write-Verbose "Deleting current Phone Authentication Method $($phoneType) with value '$($currentPhoneNumber)' for account with id $($aRef)"
 
                 $baseUri = "https://graph.microsoft.com/"
-                $deletePhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($aRef)/authentication/phoneMethods/$phoneTypeId"
+                $deletePhoneAuthenticationMethodUri = $baseUri + "v1.0/users/$($aRef)/authentication/phoneMethods/$phoneTypeId"
 
                 if (-Not($dryRun -eq $True)) {
                     $deletePhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $deletePhoneAuthenticationMethodUri -Method Delete -Headers $authorization -Body $bodyJson -Verbose:$false
