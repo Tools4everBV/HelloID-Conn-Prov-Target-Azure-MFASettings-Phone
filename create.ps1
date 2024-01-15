@@ -37,6 +37,7 @@ $account = [PSCustomObject]@{
 
 # Troubleshooting
 # $dryRun = $false
+
 # $account = [PSCustomObject]@{
 #     userPrincipalName               = 'j.doe@enyoi.org'
 #     # Phone numbers use the format "+<country code> <number>x<extension>", with extension optional.
@@ -86,8 +87,8 @@ try {
 
         Write-Verbose "Gathering current Phone Authentication Methods for account with id $($aRef)"
 
-        $baseUri = "https://graph.microsoft.com/"
-        $getPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($aRef)/authentication/phoneMethods"
+        $baseUri = "https://graph.microsoft.com/v1.0/"
+        $getPhoneAuthenticationMethodUri = $baseUri + "/users/$($aRef)/authentication/phoneMethods"
 
         $getPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $getPhoneAuthenticationMethodUri -Method Get -Headers $authorization -Verbose:$false
         $getPhoneAuthenticationMethodResponseValue = $getPhoneAuthenticationMethodResponse.value
@@ -150,8 +151,8 @@ if ($null -ne $azureUser.id) {
             if ($authenticationMethodSet -eq $false) {
                 Write-Verbose "No Phone Authentication set for Method $($phoneType). Adding Phone Authentication Method $($phoneType) with value '$($phoneNumber)' for account with id $($aRef)"
                 
-                $baseUri = "https://graph.microsoft.com/"
-                $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($aRef)/authentication/phoneMethods"
+                $baseUri = "https://graph.microsoft.com/v1.0/"
+                $addPhoneAuthenticationMethodUri = $baseUri + "/users/$($aRef)/authentication/phoneMethods"
                 
                 $body = @{
                     "phoneNumber" = $phoneNumber
@@ -181,8 +182,8 @@ if ($null -ne $azureUser.id) {
                 else {
                     Write-Verbose "Updating current Phone Authentication Method $($phoneType) value '$currentPhoneNumber' to value '$($phoneNumber)' for account with id $($aRef)"
 
-                    $baseUri = "https://graph.microsoft.com/"
-                    $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($aRef)/authentication/phoneMethods/$phoneTypeId"
+                    $baseUri = "https://graph.microsoft.com/v1.0/"
+                    $addPhoneAuthenticationMethodUri = $baseUri + "/users/$($aRef)/authentication/phoneMethods/$phoneTypeId"
                     
                     $body = @{
                         "phoneNumber" = $phoneNumber
@@ -191,7 +192,7 @@ if ($null -ne $azureUser.id) {
                     $bodyJson = $body | ConvertTo-Json -Depth 10
                     
                     if (-Not($dryRun -eq $True)) {
-                        $addPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $addPhoneAuthenticationMethodUri -Method Put -Headers $authorization -Body $bodyJson -Verbose:$false
+                        $addPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $addPhoneAuthenticationMethodUri -Method Patch -Headers $authorization -Body $bodyJson -Verbose:$false
                     
                         
                         $auditLogs.Add([PSCustomObject]@{
@@ -227,8 +228,8 @@ if ($null -ne $azureUser.id) {
         if ($account.enableSMSSignInMobile -eq $true) {
             Write-Verbose "Enabling $($phoneType) SMS Sign-in for account with id $($aRef)"
 
-            $baseUri = "https://graph.microsoft.com/"
-            $enablePhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($aRef)/authentication/phoneMethods/$phoneTypeId/enableSmsSignIn"
+            $baseUri = "https://graph.microsoft.com/v1.0/"
+            $enablePhoneAuthenticationMethodUri = $baseUri + "/users/$($aRef)/authentication/phoneMethods/$phoneTypeId/enableSmsSignIn"
 
             if (-Not($dryRun -eq $True)) {
                 $enablePhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $enablePhoneAuthenticationMethodUri -Method Post -Headers $authorization -Verbose:$false
@@ -278,8 +279,8 @@ if ($null -ne $azureUser.id) {
             if ($authenticationMethodSet -eq $false) {
                 Write-Verbose "No Phone Authentication set for Method $($phoneType). Adding Phone Authentication Method $($phoneType) with value '$($phoneNumber)' for account with id $($aRef)"
                     
-                $baseUri = "https://graph.microsoft.com/"
-                $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($aRef)/authentication/phoneMethods"
+                $baseUri = "https://graph.microsoft.com/v1.0/"
+                $addPhoneAuthenticationMethodUri = $baseUri + "/users/$($aRef)/authentication/phoneMethods"
                     
                 $body = @{
                     "phoneNumber" = $phoneNumber
@@ -309,8 +310,8 @@ if ($null -ne $azureUser.id) {
                 else {
                     Write-Verbose "Updating current Phone Authentication Method $($phoneType) value '$currentPhoneNumber' to value '$($phoneNumber)' for account with id $($aRef)"
 
-                    $baseUri = "https://graph.microsoft.com/"
-                    $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($aRef)/authentication/phoneMethods/$phoneTypeId"
+                    $baseUri = "https://graph.microsoft.com/v1.0/"
+                    $addPhoneAuthenticationMethodUri = $baseUri + "/users/$($aRef)/authentication/phoneMethods/$phoneTypeId"
                     
                     $body = @{
                         "phoneNumber" = $phoneNumber
@@ -319,7 +320,7 @@ if ($null -ne $azureUser.id) {
                     $bodyJson = $body | ConvertTo-Json -Depth 10
                     
                     if (-Not($dryRun -eq $True)) {
-                        $addPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $addPhoneAuthenticationMethodUri -Method Put -Headers $authorization -Body $bodyJson -Verbose:$false
+                        $addPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $addPhoneAuthenticationMethodUri -Method Patch -Headers $authorization -Body $bodyJson -Verbose:$false
                     
                         
                         $auditLogs.Add([PSCustomObject]@{
@@ -368,8 +369,8 @@ if ($null -ne $azureUser.id) {
             if ($authenticationMethodSet -eq $false) {
                 Write-Verbose "No Phone Authentication set for Method $($phoneType). Adding Phone Authentication Method $($phoneType) with value '$($phoneNumber)' for account with id $($aRef)"
                     
-                $baseUri = "https://graph.microsoft.com/"
-                $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($aRef)/authentication/phoneMethods"
+                $baseUri = "https://graph.microsoft.com/v1.0/"
+                $addPhoneAuthenticationMethodUri = $baseUri + "/users/$($aRef)/authentication/phoneMethods"
                     
                 $body = @{
                     "phoneNumber" = $phoneNumber
@@ -399,8 +400,8 @@ if ($null -ne $azureUser.id) {
                 else {
                     Write-Verbose "Updating current Phone Authentication Method $($phoneType) value '$currentPhoneNumber' to value '$($phoneNumber)' for account with id $($aRef)"
 
-                    $baseUri = "https://graph.microsoft.com/"
-                    $addPhoneAuthenticationMethodUri = $baseUri + "/beta/users/$($aRef)/authentication/phoneMethods/$phoneTypeId"
+                    $baseUri = "https://graph.microsoft.com/v1.0/"
+                    $addPhoneAuthenticationMethodUri = $baseUri + "/users/$($aRef)/authentication/phoneMethods/$phoneTypeId"
                     
                     $body = @{
                         "phoneNumber" = $phoneNumber
@@ -409,7 +410,7 @@ if ($null -ne $azureUser.id) {
                     $bodyJson = $body | ConvertTo-Json -Depth 10
                     
                     if (-Not($dryRun -eq $True)) {
-                        $addPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $addPhoneAuthenticationMethodUri -Method Put -Headers $authorization -Body $bodyJson -Verbose:$false
+                        $addPhoneAuthenticationMethodResponse = Invoke-RestMethod -Uri $addPhoneAuthenticationMethodUri -Method Patch -Headers $authorization -Body $bodyJson -Verbose:$false
                     
                         
                         $auditLogs.Add([PSCustomObject]@{
