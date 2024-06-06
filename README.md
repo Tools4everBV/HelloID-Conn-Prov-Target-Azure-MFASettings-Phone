@@ -72,10 +72,10 @@ For this connector the following permissions are used as <b>Application permissi
 *	Read and Write all user’s authentication methods by using <b><i>UserAuthenticationMethod.ReadWrite.All</i></b>
 
 These permissions are based on the Microsoft docs articles:
-*	https://docs.microsoft.com/nl-nl/graph/api/authentication-list-phonemethods?view=graph-rest-beta&tabs=http
-*	https://docs.microsoft.com/nl-nl/graph/api/authentication-post-phonemethods?view=graph-rest-beta&tabs=http
-*	https://docs.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-update?view=graph-rest-beta&tabs=http
-*	https://docs.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-delete?view=graph-rest-beta&tabs=http
+*	[https://docs.microsoft.com/nl-nl/graph/api/authentication-list-phonemethods?view=graph-rest-beta&tabs=http](https://learn.microsoft.com/nl-nl/graph/api/authentication-list-phonemethods?view=graph-rest-1.0&tabs=http)
+*	[https://docs.microsoft.com/nl-nl/graph/api/authentication-post-phonemethods?view=graph-rest-beta&tabs=http](https://learn.microsoft.com/nl-nl/graph/api/authentication-post-phonemethods?view=graph-rest-1.0&tabs=http)
+*	[https://docs.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-update?view=graph-rest-beta&tabs=http](https://learn.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-update?view=graph-rest-1.0&tabs=http)
+*	[https://docs.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-delete?view=graph-rest-beta&tabs=http](https://learn.microsoft.com/nl-nl/graph/api/phoneauthenticationmethod-delete?view=graph-rest-1.0&tabs=http)
 
 Some high-privilege permissions can be set to admin-restricted and require an administrators consent to be granted.
 
